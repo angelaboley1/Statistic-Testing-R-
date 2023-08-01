@@ -1,0 +1,139 @@
+#Lab 5
+#Angela Boley
+
+library(ggplot2)
+
+#T tests
+
+#Task 1
+library(rio)
+iristtest= import("INST314/iristtest.csv")
+View(iristtest)
+
+#Task 2 
+iristtest %>%
+  group_by(Species) %>%
+  get_summary_stats(Petal.Length, type="mean_sd")
+ggboxplot(iristtest,x="Species",y="Petal.Length")
+
+#Task 3
+iristtest %>%
+  group_by(Species) %>%
+  identify_outliers(Petal.Length)
+
+iristtest %>%
+  group_by(Species) %>%
+  shapiro_test(Petal.Length)
+
+ggqqplot(iristtest, x = "Petal.Length", facet.by = "Species")
+
+IToutput <- iristtest %>%
+  t_test(Petal.Length ~ Species) %>%
+  add_significance()
+IToutput
+
+#Task 4
+weight = import("INST314/weightTtest.csv")
+view(weight)
+
+weight.long <- weight %>%
+  gather(key = "time", value = "weight", before, after)
+
+view(weight.long)
+
+#Task 5
+weight.long %>%
+  group_by(time) %>%
+  get_summary_stats(weight, type="mean_sd")
+
+ggboxplot(weight.long,x="time",y="weight")
+
+#Task 6
+weight <- weight %>% mutate(differences = before - after)
+head(weight, 5)
+
+weight %>% identify_outliers(differences)
+
+weight %>% shapiro_test(differences) 
+
+ggqqplot(weight, "differences")
+
+PToutput <- weight.long %>%
+  t_test(weight ~ time, paired = TRUE) %>%
+  add_significance()
+PToutput
+
+#ANOVA
+
+#Task 7
+iris2 = import("INST314/iris.csv")
+View(iris2)
+
+#Task 8
+iris2 %>% sample_n_by(Species,size = 1)
+
+levels(iris2$Species)
+
+iris2 %>%
+  group_by(Species) %>%
+  get_summary_stats(Sepal.Length, type="mean_sd")
+
+ggboxplot(iris2,x="Species",y="Sepal.Length")
+
+#Task 9
+iris2 %>%
+  group_by(Species) %>%
+  identify_outliers(Sepal.Length)
+
+model <- lm(Sepal.Length ~Species, data = iris2)
+
+ggqqplot(residuals(model))
+
+shapiro_test(residuals(model))
+
+iris2 %>%
+  levene_test(Sepal.Length ~ Species)
+
+pg.aov <- iris2 %>% anova_test(Sepal.Length ~ Species)
+pg.aov
+
+pg.pwc <- iris2 %>% tukey_hsd(Sepal.Length ~ Species)
+pg.pwc
+
+#Task 10
+weightanova = import("INST314/weightanova.csv")
+View(weightanova)
+
+weightanova <- weightanova %>%
+  gather(key = "time", value = "weight", t1, t2, t3) %>%
+  convert_as_factor(id, time) # convert id and time into factor
+
+view(weightanova)
+
+#Task 11
+weightanova %>%
+  group_by(time) %>%
+  get_summary_stats(weight, type = "mean_sd")
+
+bxp <- ggboxplot(weightanova, x = "time", y = "weight", add = "point")
+bxp
+
+#Task 12
+weightanova %>%
+  group_by(time) %>%
+  identify_outliers(weight)
+
+weightanova %>%
+  group_by(time) %>%
+  shapiro_test(weight)
+
+ggqqplot(weightanova, "weight", facet.by = "time")
+
+res.aov <- anova_test(data = weightanova, dv = weight, within = time, wid = id)
+get_anova_table(res.aov)
+
+bonf <- pairwise_t_test(data = weightanova, 
+                        weight~time,
+                        paired = T,
+                        p.adjust.method = "bonferroni")
+bonf
